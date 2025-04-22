@@ -1,0 +1,60 @@
+# k8s/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: my-python-cronjob # Name of the CronJob resource
+spec:
+  # Cron schedule format: minute hour day(month) month day(week)
+  # Example: "*/5 * * * *" means "run every 5 minutes"
+  # Example: "0 2 * * *" means "run at 2:00 AM UTC every day"
+  schedule: "*/1 * * * *" # Runs every minute - adjust as needed!
+
+  # Specifies how to handle concurrent executions of the job if the previous one hasn't finished
+  # Allow: Allows concurrent runs
+  # Forbid: Skips the new run if the previous one is still running
+  # Replace: Cancels the currently running job and starts a new one
+  concurrencyPolicy: Forbid
+
+  # Deadline in seconds for starting the job if it misses its scheduled time
+  # startingDeadlineSeconds: 60 # Optional: Job must start within 60s of schedule or it's skipped
+
+  # Limits on the number of old jobs to keep
+  successfulJobsHistoryLimit: 3 # Keep history of last 3 successful jobs
+  failedJobsHistoryLimit: 1     # Keep history of last 1 failed job
+
+  # Template for the Job that the CronJob controller will create
+  jobTemplate:
+    spec:
+      # Optional: How long the job can run before being terminated (in seconds)
+      # activeDeadlineSeconds: 300 # Job must complete within 5 minutes
+
+      # Optional: Number of retries before marking the job as failed
+      backoffLimit: 2
+
+      # Template for the Pod that will run the job's container
+      template:
+        spec:
+          containers:
+          - name: python-script-runner # Name of the container within the pod
+            # --- IMPORTANT: Replace with your actual image path ---
+            image: dchidambaram/my-python-cronjob:latest
+            imagePullPolicy: Always # Or IfNotPresent if using non-:latest tags
+            env: # Optional: Add environment variables
+              - name: JOB_ID # Example environment variable
+                valueFrom: # Get the Job name dynamically
+                  fieldRef:
+                    fieldPath: metadata.labels['job-name']
+            # Optional: Resource requests and limits
+            # resources:
+            #   requests:
+            #     memory: "64Mi"
+            #     cpu: "100m" # 1/10th of a CPU core
+            #   limits:
+            #     memory: "128Mi"
+            #     cpu: "250m"
+
+          # Restart policy for pods within the Job
+          # OnFailure: Restart container if it fails (non-zero exit code)
+          # Never: Do not restart container if it fails
+          # Jobs typically use OnFailure or Never, not Always
+          restartPolicy: OnFailure
