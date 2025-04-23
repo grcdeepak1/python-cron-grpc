@@ -1,0 +1,48 @@
+# k8s/grpc-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-grpc-service # Name of the Deployment
+  labels:
+    app: my-grpc-service # Label for grouping and selection
+spec:
+  replicas: 2 # Run 2 instances of the gRPC server for availability
+  selector:
+    matchLabels:
+      app: my-grpc-service # Selects pods with this label
+  template: # Pod template
+    metadata:
+      labels:
+        app: my-grpc-service # Label applied to pods
+    spec:
+      containers:
+      - name: grpc-server
+        # --- IMPORTANT: Replace with your actual image path ---
+        image: dchidambaram/my-python-grpc-deploy:latest
+        imagePullPolicy: Always # Or IfNotPresent
+        ports:
+        - containerPort: 50051 # The port the gRPC server listens on inside the container
+          name: grpc          # Name for the port (used by the Service)
+        # Basic Liveness and Readiness Probes (TCP Check)
+        # For production, consider using grpc_health_probe: https://github.com/grpc-ecosystem/grpc-health-probe
+        livenessProbe:
+          tcpSocket:
+            port: grpc # Checks if the gRPC port is open
+          initialDelaySeconds: 15 # Wait 15s before first probe
+          periodSeconds: 20     # Probe every 20s
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: grpc # Checks if the gRPC port is open and ready to accept traffic
+          initialDelaySeconds: 5  # Wait 5s before first probe
+          periodSeconds: 10     # Probe every 10s
+          successThreshold: 1
+          failureThreshold: 3
+        # Optional: Resources
+        # resources:
+        #   requests:
+        #     memory: "128Mi"
+        #     cpu: "100m"
+        #   limits:
+        #     memory: "256Mi"
+        #     cpu: "500m"

@@ -1,0 +1,16 @@
+# k8s/grpc-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-grpc-service # Name of the Service (used for DNS discovery)
+  labels:
+    app: my-grpc-service
+spec:
+  type: ClusterIP # Exposes the service on a cluster-internal IP (default)
+  selector:
+    app: my-grpc-service # Selects pods managed by the Deployment with this label
+  ports:
+  - name: grpc # Can be named anything descriptive
+    protocol: TCP
+    port: 50051 # The port other services in the cluster will use to connect
+    targetPort: grpc # Connects to the container port named 'grpc' (which is 50051) in the Deployment pods
