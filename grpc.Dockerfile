@@ -3,12 +3,8 @@ FROM python:3.9-slim AS builder
 
 WORKDIR /build
 
-# Install protoc compiler and python tools
-RUN apt-get update && \
-	apt-get install -y --no-install-recommends protobuf-compiler && \
-	pip install --no-cache-dir grpcio-tools && \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
+COPY app_grpc/requirements-build.txt .
+RUN pip install --no-cache-dir -r requirements-build.txt
 
 # Copy only the .proto files first
 COPY app_grpc/protos/ /build/protos/
