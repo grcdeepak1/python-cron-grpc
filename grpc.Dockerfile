@@ -1,25 +1,41 @@
-# grpc.Dockerfile
+# --- Builder Stage ---
+FROM python:3.9-slim AS builder
 
-# 1. Base image
+WORKDIR /build
+
+# Install protoc compiler and python tools
+RUN apt-get update && \
+	apt-get install -y --no-install-recommends protobuf-compiler && \
+	pip install --no-cache-dir grpcio-tools && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+
+# Copy only the .proto files first
+COPY app_grpc/protos/ /build/protos/
+
+# Generate the Python bindings into a specific output directory
+RUN mkdir /build/generated && \
+	python -m grpc_tools.protoc \
+	-I=/build/protos \
+	--python_out=/build/generated \
+	--grpc_python_out=/build/generated \
+	/build/protos/service.proto
+
+# --- Final Stage ---
 FROM python:3.9-slim
 
-# 2. Environment variables
-ENV PYTHONUNBUFFERED=1
-
-# 3. Working directory
 WORKDIR /app
 
-# 4. Copy requirements first
+# Install only RUNTIME dependencies (not grpcio-tools)
+# Make sure your requirements.txt includes 'grpcio' and 'protobuf'
 COPY app_grpc/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Install dependencies
-RUN pip install --no-cache-dir --trusted-host pypi.python.org -r requirements.txt
+# Copy generated code from the builder stage
+COPY --from=builder /build/generated /app/
 
-# 6. Copy application code (including protos and generated files)
+# Copy your application code (that imports the generated code)
 COPY app_grpc/ /app/
 
-# 7. Expose the gRPC port the server listens on
-EXPOSE 50051
-
-# 8. Command to run the server
+# Define runtime command (example)
 CMD ["python", "server.py"]
