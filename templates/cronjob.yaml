@@ -44,6 +44,8 @@ spec:
                 valueFrom: # Get the Job name dynamically
                   fieldRef:
                     fieldPath: metadata.labels['job-name']
+              - name: CUSTOM_DATA
+                value: "{{ .Values.customData }}"
             # Optional: Resource requests and limits
             # resources:
             #   requests:
